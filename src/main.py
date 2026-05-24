@@ -1,21 +1,26 @@
 from fasta_loader import load_fasta
-from dna_encoder import encode_dna
-from kmer_indexer import generate_kmers
+from kmer_indexer import build_kmer_index
+from genome_search import search_kmer
+
 
 def main():
     sequences = load_fasta("../data/sample.fasta")
 
-    for seq_id, sequence in sequences.items():
-        print(f"\n=== {seq_id} ===")
+    print("\nBuilding k-mer index...")
+    index = build_kmer_index(sequences, k=3)
 
-        encoded = encode_dna(sequence)
-        print(f"Encoded : {encoded}")
+    print("\nSearching for 'ACT'...\n")
 
-        kmers = generate_kmers(sequence, k=3)
+    results = search_kmer(index, "ACT")
 
-        print("\n3-mers:")
-        for kmer, position in kmers:
-            print(f"{kmer} at position {position}")
+    if results:
+        for result in results:
+            print(
+                f"Found in {result['sequence_id']} "
+                f"at position {result['position']}"
+            )
+    else:
+        print("No matches found")
 
 if __name__ == "__main__":
     main()
