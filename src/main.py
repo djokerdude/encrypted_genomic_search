@@ -1,28 +1,26 @@
 from fasta_loader import load_fasta
-from kmer_indexer import build_kmer_index
-from genome_search import search_sequence
+from aes_storage import encrypt_sequence, decrypt_sequence
+from Crypto.Random import get_random_bytes
 
 
 def main():
     sequences = load_fasta("../data/sample.fasta")
 
-    print("\nBuilding k-mer index...")
-    index = build_kmer_index(sequences, k=3)
+    key = get_random_bytes(16)
 
-    query = "ACTGACT"
+    sequence= sequences["sequence_1"]
 
-    print(f"\nSearching for '{query}'...\n")
+    print("\nOriginal Sequence: ")
+    print(sequence)
 
-    results = search_sequence(index, sequences, query, k=3)
+    encrypted = encrypt_sequence(sequence, key)
+    print("\nEncrypted Sequence:")
+    print(encrypted)
 
-    if results:
-        for result in results:
-            print(
-                f"Match found in  {result['sequence_id']} "
-                f"at position {result['position']}"
-            )
-    else:
-        print("No matches found")
+    decrypted = decrypt_sequence(encrypted, key)
+
+    print("\nDecrypted Sequence:")
+    print(decrypted)
 
 if __name__ == "__main__":
     main()
