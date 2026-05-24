@@ -1,24 +1,29 @@
 from fasta_loader import load_fasta
 from aes_storage import encrypt_sequence, decrypt_sequence
-from rsa_manager import (
-    generate_keys,
-    encrypt_key,
-    decrypt_key
+from genome_database import (
+    initialize_database,
+    store_genome,
+    retrieve_genome
 )
 
 from Crypto.Random import get_random_bytes
 
 def main():
+    #initialize database
+    initialize_database()
+
+    #load genome sequences
     sequences = load_fasta("../data/sample.fasta")
-
-    sequence= sequences["sequence_1"]
-
-    print("\nOriginal Sequence: ")
-    print(sequence)
 
     #Generate AES key
     aes_key = get_random_bytes(16)
 
+    #Select genome
+    sequence_id = "sequence_1"
+    sequence = sequences[sequence_id]
+
+    print("\nOriginal Sequence:")
+    print(sequence)
 
     #Encrypt genome sequence
     encrypted_sequence = encrypt_sequence(sequence, aes_key)
@@ -26,25 +31,24 @@ def main():
     print("\nEncrypted Sequence:")
     print(encrypted_sequence)
 
-    #Generate RSA keys
-    private_key, public_key = generate_keys()
-
-    #Encrypt AES key with RSA public key
-    encrypted_aes_key = encrypt_key(aes_key,public_key)
-
-    print("\nEncrypted AES Key:")
-    print(encrypted_aes_key)
-
-    #Decrypt AES key with RSA private key
-    decrypted_aes_key = decrypt_key(
-        encrypted_aes_key,
-        private_key
+    #Store encrypted genome
+    store_genome(
+        sequence_id,
+        encrypted_sequence
     )
 
-    #Decrypt genome sequence
+    print("\nGenome stored in database")
+
+    #Retrieve encrypted genome
+    retrieved_ciphertext = retrieve_genome(sequence_id)
+
+    print("\nRetrieved Encrypted Genome:")
+    print(retrieved_ciphertext)
+
+    #Decrypt genome
     decrypted_sequence = decrypt_sequence(
-        encrypted_sequence,
-        decrypted_aes_key
+        retrieved_ciphertext,
+        aes_key
     )
 
     #Print decrypted sequence
