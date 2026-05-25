@@ -22,5 +22,18 @@ def search_sequence(index, sequences, query, k=3):
                 "position": start_pos,
                 "match": extracted
             })
-            
+
+    return matches
+
+def search_plaintext_genome(sequence,query):
+    matches = []
+    query_length = len(query)
+
+    for i in range(len(sequence) - query_length + 1):
+
+        fragment = sequence[i:i + query_length]
+
+        if fragment == query:
+            matches.append(i)
+        
     return matches

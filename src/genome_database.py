@@ -50,3 +50,20 @@ def retrieve_genome(sequence_id):
         return result[0]
     
     return None
+
+def retrieve_all_genomes():
+
+    connection = sqlite3.connect("../data/genomes.db")
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT sequence_ID, encrypted_sequence
+        FROM genomes
+    """)
+
+    results = cursor.fetchall()
+
+    connection.close()
+
+    return results
