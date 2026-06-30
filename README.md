@@ -100,7 +100,15 @@ Demonstrates: FASTA loading, 2-bit DNA encoding, AES-256-GCM encryption, RSA key
 | `api_server.py` | FastAPI service wiring all modules together |
 | `main.py` | CLI walkthrough of the full pipeline |
 
-## Notes
+## Key management
 
-- Delete `data/genomes.db` if upgrading from a previous version — the schema changed to include the `encrypted_key` column.
-- The RSA private key lives only in process memory. Restarting the server means previously stored sequences can no longer be decrypted (ephemeral key design). For persistence across restarts, serialize the private key to an encrypted file or use a KMS.
+The RSA private key is stored at `keys/private_key.pem` (gitignored). On first start the server generates and saves it; on subsequent starts it loads the existing key, so sequences remain decryptable across restarts.
+
+Set `KEY_PASSPHRASE` to encrypt the key file at rest with scrypt + AES-256:
+
+```bash
+export KEY_PASSPHRASE="your-passphrase"
+uvicorn api_server:app --reload
+```
+
+Without `KEY_PASSPHRASE` the key is saved as an unencrypted PEM — acceptable for local development, not for production. In production, replace `load_or_generate_keys` with a KMS-backed equivalent and remove `keys/` entirely.

@@ -13,6 +13,11 @@ def initialize_database():
                 encrypted_key TEXT NOT NULL
             )
         """)
+        # Migrate DBs created before hybrid encryption was added
+        try:
+            conn.execute("ALTER TABLE genomes ADD COLUMN encrypted_key TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
 
 def store_genome(sequence_id: str, encrypted_sequence: str, encrypted_key: str):
     with sqlite3.connect(DB_PATH) as conn:

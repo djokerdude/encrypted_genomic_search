@@ -1,3 +1,6 @@
+import os
+import warnings
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from Crypto.Random import get_random_bytes
@@ -5,11 +8,15 @@ from Crypto.Random import get_random_bytes
 from genome_database import retrieve_genome, store_genome, retrieve_all_genomes, initialize_database
 from aes_storage import encrypt_sequence, decrypt_sequence
 from genome_search import search_plaintext_genome
-from rsa_manager import generate_keys, encrypt_key, decrypt_key
+from rsa_manager import load_or_generate_keys, encrypt_key, decrypt_key
 
 app = FastAPI(title="Encrypted Genomic Search Engine")
 
-private_key, public_key = generate_keys()
+_passphrase = os.environ.get("KEY_PASSPHRASE", "")
+if not _passphrase:
+    warnings.warn("KEY_PASSPHRASE not set — private key will be stored unencrypted on disk")
+
+private_key, public_key = load_or_generate_keys(_passphrase)
 initialize_database()
 
 class GenomeUpload(BaseModel):
