@@ -1,0 +1,119 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8fafc" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="36" text-anchor="middle" font-size="17" font-weight="700" fill="#1e293b">Encrypted Genomic Search Engine — Workflows</text>
+
+  <!-- ═══════════════ UPLOAD SECTION ═══════════════ -->
+  <rect x="20" y="55" width="760" height="230" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="40" y="80" font-size="12" font-weight="700" fill="#475569" letter-spacing="1">UPLOAD FLOW  ·  POST /upload</text>
+
+  <!-- Client -->
+  <rect x="40" y="96" width="108" height="46" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="94" y="114" text-anchor="middle" font-size="11" font-weight="600" fill="#1d4ed8">Client</text>
+  <text x="94" y="131" text-anchor="middle" font-size="10" fill="#3b82f6">{ sequence_id, sequence }</text>
+
+  <line x1="148" y1="119" x2="178" y2="119" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Generate AES Key -->
+  <rect x="178" y="96" width="128" height="46" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="242" y="114" text-anchor="middle" font-size="11" font-weight="600" fill="#15803d">Generate Key</text>
+  <text x="242" y="131" text-anchor="middle" font-size="10" fill="#16a34a">Random AES-256 (32 B)</text>
+
+  <line x1="306" y1="119" x2="336" y2="119" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- AES-GCM Encrypt -->
+  <rect x="336" y="96" width="128" height="46" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+  <text x="400" y="114" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">AES-256-GCM</text>
+  <text x="400" y="131" text-anchor="middle" font-size="10" fill="#b45309">Encrypt Sequence</text>
+
+  <line x1="464" y1="119" x2="494" y2="119" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- RSA Wrap -->
+  <rect x="494" y="96" width="128" height="46" rx="8" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <text x="558" y="114" text-anchor="middle" font-size="11" font-weight="600" fill="#6d28d9">RSA-2048-OAEP</text>
+  <text x="558" y="131" text-anchor="middle" font-size="10" fill="#7c3aed">Wrap AES Key</text>
+
+  <line x1="622" y1="119" x2="652" y2="119" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- SQLite Store -->
+  <rect x="652" y="96" width="108" height="46" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="1.5"/>
+  <text x="706" y="114" text-anchor="middle" font-size="11" font-weight="600" fill="#9f1239">SQLite</text>
+  <text x="706" y="131" text-anchor="middle" font-size="10" fill="#be123c">Store (upsert)</text>
+
+  <!-- Blob detail line -->
+  <line x1="400" y1="142" x2="400" y2="162" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,3"/>
+  <rect x="160" y="162" width="480" height="24" rx="6" fill="#f1f5f9"/>
+  <text x="400" y="178" text-anchor="middle" font-size="10" fill="#64748b">blob = base64( nonce 16B · tag 16B · ciphertext )   ·   encrypted_key = base64( RSA(aes_key) )</text>
+
+  <!-- Legend row -->
+  <text x="40" y="215" font-size="10" fill="#94a3b8">private key path: keys/private_key.pem  (scrypt + AES-256 at rest when KEY_PASSPHRASE is set)</text>
+  <text x="40" y="232" font-size="10" fill="#94a3b8">each upload generates a fresh AES key — compromise of one row does not affect others</text>
+
+  <!-- ═══════════════ SEARCH SECTION ═══════════════ -->
+  <rect x="20" y="305" width="760" height="275" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="40" y="330" font-size="12" font-weight="700" fill="#475569" letter-spacing="1">SEARCH FLOW  ·  POST /search</text>
+
+  <!-- Client -->
+  <rect x="40" y="346" width="108" height="46" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="94" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#1d4ed8">Client</text>
+  <text x="94" y="381" text-anchor="middle" font-size="10" fill="#3b82f6">{ query }</text>
+
+  <line x1="148" y1="369" x2="178" y2="369" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- SQLite Retrieve -->
+  <rect x="178" y="346" width="108" height="46" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="1.5"/>
+  <text x="232" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#9f1239">SQLite</text>
+  <text x="232" y="381" text-anchor="middle" font-size="10" fill="#be123c">Retrieve rows</text>
+
+  <line x1="286" y1="369" x2="316" y2="369" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- RSA Unwrap -->
+  <rect x="316" y="346" width="128" height="46" rx="8" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <text x="380" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#6d28d9">RSA-2048-OAEP</text>
+  <text x="380" y="381" text-anchor="middle" font-size="10" fill="#7c3aed">Unwrap AES Key</text>
+
+  <line x1="444" y1="369" x2="474" y2="369" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- AES-GCM Decrypt -->
+  <rect x="474" y="346" width="128" height="46" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+  <text x="538" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">AES-256-GCM</text>
+  <text x="538" y="381" text-anchor="middle" font-size="10" fill="#b45309">Decrypt + Verify Tag</text>
+
+  <line x1="602" y1="369" x2="632" y2="369" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Substring Match -->
+  <rect x="632" y="346" width="108" height="46" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="686" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#15803d">Substring</text>
+  <text x="686" y="381" text-anchor="middle" font-size="10" fill="#16a34a">Match positions</text>
+
+  <!-- Return arrow back to client -->
+  <line x1="686" y1="392" x2="686" y2="430" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="686" y1="430" x2="94" y2="430" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="94" y1="430" x2="94" y2="406" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="400" y="448" text-anchor="middle" font-size="10" fill="#64748b">{ query, matches: [ { sequence_id, positions: [0, 4, …] } ] }</text>
+
+  <!-- Legend -->
+  <text x="40" y="475" font-size="10" fill="#94a3b8">each row decrypted individually with its own RSA-unwrapped key</text>
+  <text x="40" y="491" font-size="10" fill="#94a3b8">GCM tag verified before search — tampered ciphertext raises an error before any data is returned</text>
+  <text x="40" y="507" font-size="10" fill="#94a3b8">plaintext held in memory only for the duration of the request</text>
+
+  <!-- Color legend -->
+  <rect x="40" y="530" width="12" height="12" rx="3" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="58" y="541" font-size="10" fill="#64748b">Client / API</text>
+  <rect x="140" y="530" width="12" height="12" rx="3" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="158" y="541" font-size="10" fill="#64748b">Key ops</text>
+  <rect x="220" y="530" width="12" height="12" rx="3" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+  <text x="238" y="541" font-size="10" fill="#64748b">AES-GCM</text>
+  <rect x="310" y="530" width="12" height="12" rx="3" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <text x="328" y="541" font-size="10" fill="#64748b">RSA</text>
+  <rect x="370" y="530" width="12" height="12" rx="3" fill="#fff1f2" stroke="#fda4af" stroke-width="1.5"/>
+  <text x="388" y="541" font-size="10" fill="#64748b">Storage</text>
+</svg>

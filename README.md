@@ -1,23 +1,20 @@
 # Encrypted Genomic Search Engine
 
-A FastAPI service for storing and searching genomic sequences with AES-256-GCM encryption and RSA hybrid key management. Each sequence is encrypted with a unique AES key; that key is RSA-OAEP-wrapped so the server never holds a reusable plaintext secret.
+This project grew out of my Discrete Mathematics II course. While studying cryptographic primitives — RSA, modular arithmetic, finite fields — I got curious about what it would look like to apply that theory to real biological data. Genomic sequences felt like the right testbed: they're sensitive, repetitive, and large enough that both the encryption scheme and the search algorithm actually matter. The result is a FastAPI service that stores sequences under AES-256-GCM encryption with RSA hybrid key management, and lets you search across them without ever exposing plaintext at rest.
+
+---
 
 ## Architecture
 
-```
-Upload:   sequence  ──► AES-256-GCM ──► ciphertext
-          AES key   ──► RSA-2048-OAEP ► encrypted_key
-          SQLite: { sequence_id, ciphertext, encrypted_key }
+Each uploaded sequence gets a fresh random AES-256 key. That key is RSA-OAEP-wrapped with the server's public key and stored in the database alongside the ciphertext. Authenticated encryption (GCM) ensures both confidentiality and integrity — the tag detects any tampering before decryption.
 
-Search:   per-row: encrypted_key ──► RSA decrypt ──► AES key
-                   ciphertext    ──► AES-GCM decrypt ──► plaintext ──► match
-```
-
-**Why AES-GCM?** Authenticated encryption — the tag detects any ciphertext tampering before decryption. No padding-oracle risk. The nonce, tag, and ciphertext are packed into the stored blob.
+![Workflow diagram](assets/workflow.svg)
 
 **Why per-sequence keys?** Compromise of one row's AES key does not affect any other sequence.
 
-**RSA key lifetime:** The key pair is generated fresh on each server start (ephemeral). In production this would be replaced by a KMS-backed key.
+**Why AES-GCM over ECB or CBC?** ECB leaks block patterns (especially bad for repetitive genomic data). CBC needs careful IV handling and is vulnerable to padding oracles. GCM is authenticated, requires no padding, and produces a compact nonce + tag + ciphertext blob.
+
+---
 
 ## Setup
 
@@ -27,14 +24,40 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Run the API
+---
+
+## Running the API
+
+### Basic start
 
 ```bash
 cd src
 uvicorn api_server:app --reload
 ```
 
-Interactive docs: http://localhost:8000/docs
+The server starts on `http://localhost:8000`. On first run it generates an RSA-2048 key pair and saves it to `keys/private_key.pem`. Subsequent restarts load the same key, so previously stored sequences remain decryptable.
+
+### With an encrypted key file (recommended)
+
+```bash
+export KEY_PASSPHRASE="your-passphrase"
+cd src
+uvicorn api_server:app --reload
+```
+
+When `KEY_PASSPHRASE` is set, the private key file is encrypted with scrypt + AES-256. Without it, the key is saved as a plain PEM — fine for local development, not for production.
+
+### Custom host / port
+
+```bash
+uvicorn api_server:app --host 0.0.0.0 --port 8080 --reload
+```
+
+### Interactive API docs
+
+Once running, open **`http://localhost:8000/docs`** for the Swagger UI — every endpoint has a "Try it out" button for testing without curl.
+
+---
 
 ## API Reference
 
@@ -50,7 +73,11 @@ Interactive docs: http://localhost:8000/docs
 ```bash
 curl -X POST http://localhost:8000/upload \
   -H "Content-Type: application/json" \
-  -d '{"sequence_id": "seq1", "sequence": "ATCGATCGATCGTTAG"}'
+  -d '{"sequence_id": "brca1", "sequence": "ATCGATCGATCGAAGCTTGCATGCCTGCAG"}'
+```
+
+```json
+{"message": "Genome uploaded successfully", "sequence_id": "brca1"}
 ```
 
 ### Search across all sequences
@@ -61,12 +88,11 @@ curl -X POST http://localhost:8000/search \
   -d '{"query": "ATCG"}'
 ```
 
-Response:
 ```json
 {
   "query": "ATCG",
   "matches": [
-    {"sequence_id": "seq1", "positions": [0, 4, 8]}
+    {"sequence_id": "brca1", "positions": [0, 4, 8]}
   ]
 }
 ```
@@ -74,8 +100,25 @@ Response:
 ### Retrieve stored ciphertext
 
 ```bash
-curl http://localhost:8000/genome/seq1
+curl http://localhost:8000/genome/brca1
 ```
+
+```json
+{
+  "sequence_id": "brca1",
+  "encrypted_sequence": "2URBd4G4r3q5xS8s..."
+}
+```
+
+### Not found
+
+```bash
+curl http://localhost:8000/genome/unknown
+# HTTP 404
+# {"detail": "Genome 'unknown' not found"}
+```
+
+---
 
 ## Run the CLI demo
 
@@ -84,21 +127,25 @@ cd src
 python main.py
 ```
 
-Demonstrates: FASTA loading, 2-bit DNA encoding, AES-256-GCM encryption, RSA key wrapping, SQLite round-trip, and k-mer index search.
+Demonstrates the full pipeline end-to-end: FASTA loading, 2-bit DNA binary encoding, AES-256-GCM encryption, RSA key wrapping, SQLite round-trip, and k-mer index search.
+
+---
 
 ## Module overview
 
 | File | Purpose |
 |------|---------|
-| `aes_storage.py` | AES-256-GCM encrypt/decrypt with packed nonce+tag+ciphertext |
-| `rsa_manager.py` | RSA-2048 key generation and PKCS1-OAEP key wrapping |
-| `genome_database.py` | SQLite persistence with upsert semantics |
-| `genome_search.py` | Linear scan search; k-mer index-assisted search |
-| `kmer_indexer.py` | O(1) k-mer lookup index over plaintext sequences |
+| `aes_storage.py` | AES-256-GCM encrypt/decrypt; stores nonce + tag + ciphertext as a single base64 blob |
+| `rsa_manager.py` | RSA-2048 key generation, PKCS1-OAEP key wrapping, and persistent key loading |
+| `genome_database.py` | SQLite persistence with upsert semantics and automatic schema migration |
+| `genome_search.py` | Linear scan substring search; k-mer index-assisted search |
+| `kmer_indexer.py` | Builds an O(1) k-mer lookup index over plaintext sequences |
 | `fasta_loader.py` | BioPython FASTA parser |
 | `dna_encoder.py` | 2-bit binary encoding (A=00, C=01, G=10, T=11) |
 | `api_server.py` | FastAPI service wiring all modules together |
 | `main.py` | CLI walkthrough of the full pipeline |
+
+---
 
 ## Key management
 
