@@ -1,69 +1,39 @@
 import sqlite3
+from pathlib import Path
+
+DB_PATH = Path(__file__).parent.parent / "data" / "genomes.db"
 
 def initialize_database():
-    connection = sqlite3.connect("../data/genomes.db")
-    cursor = connection.cursor()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS genomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sequence_id TEXT UNIQUE NOT NULL,
+                encrypted_sequence TEXT NOT NULL,
+                encrypted_key TEXT NOT NULL
+            )
+        """)
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS genomes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sequence_id TEXT,
-            encrypted_sequence TEXT
-        )
-    """)
+def store_genome(sequence_id: str, encrypted_sequence: str, encrypted_key: str):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            INSERT INTO genomes (sequence_id, encrypted_sequence, encrypted_key)
+            VALUES (?, ?, ?)
+            ON CONFLICT(sequence_id) DO UPDATE SET
+                encrypted_sequence = excluded.encrypted_sequence,
+                encrypted_key = excluded.encrypted_key
+        """, (sequence_id, encrypted_sequence, encrypted_key))
 
-    connection.commit()
-    connection.close()
-
-def store_genome(sequence_id, encrypted_sequence):
-    connection = sqlite3.connect("../data/genomes.db")
-
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO genomes(
-            sequence_id,
-            encrypted_sequence
-        )
-        VALUES (?, ?)
-    """, (sequence_id, encrypted_sequence))
-
-    connection.commit()
-    connection.close()
-
-def retrieve_genome(sequence_id):
-    connection = sqlite3.connect("../data/genomes.db")
-
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        SELECT encrypted_sequence
-        FROM genomes
-        WHERE sequence_id = ?
-    """, (sequence_id,))
-
-    result = cursor.fetchone()
-
-    connection.close()
-
-    if result:
-        return result[0]
-    
-    return None
+def retrieve_genome(sequence_id: str):
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute("""
+            SELECT encrypted_sequence, encrypted_key
+            FROM genomes WHERE sequence_id = ?
+        """, (sequence_id,)).fetchone()
+    return row  # (encrypted_sequence, encrypted_key) or None
 
 def retrieve_all_genomes():
-
-    connection = sqlite3.connect("../data/genomes.db")
-
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        SELECT sequence_ID, encrypted_sequence
-        FROM genomes
-    """)
-
-    results = cursor.fetchall()
-
-    connection.close()
-
-    return results
+    with sqlite3.connect(DB_PATH) as conn:
+        return conn.execute("""
+            SELECT sequence_id, encrypted_sequence, encrypted_key FROM genomes
+        """).fetchall()
